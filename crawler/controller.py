@@ -7,6 +7,7 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),"..", "d
 
 import threading
 import urllib.parse
+import time
 
 #from db import *
 from gephiAPI import GephiAPI
@@ -49,11 +50,13 @@ class Controller(threading.Thread):
 					self.gephiAPI.add_edge(param['url'], link)
 				depth = param['depth'] + 1
 				if depth < self.max_depth:
+					start = time.time()
 					for link in links:
 						if link not in self.visited:
 							result = {'url':link, 'depth':depth}
 							self.queue_out.put(result)
 							self.visited.add(link)
+					print("TIME ADD LINKS %s" % (time.time() - start))
 				#print "END CONTROL", param['url']
 
 	def normalize_url(self, base_url, url):
