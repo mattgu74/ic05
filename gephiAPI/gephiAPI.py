@@ -2,6 +2,7 @@
 
 import urllib.request
 import urllib.parse
+import urllib.error
 
 class GephiAPI:
 	def __init__(self, host="localhost", port=8080):
@@ -38,7 +39,10 @@ class GephiAPI:
 			ws_id=workspace_id,
 		)
 		#print(url)
-		urllib.request.urlopen(url, data=data.encode())
+		try:
+			urllib.request.urlopen(url, data=data.encode())
+		except urllib.error.URLError:
+			pass
 
 
 if __name__ == "__main__":
