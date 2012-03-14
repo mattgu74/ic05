@@ -2,53 +2,7 @@
 
 
 
-type Page.ref = string
-type Page = {
-	string url
-}
 
-type Link.ref = string
-type Link = {
-	Page.ref source,
-	Page.ref target
-}
-
-database mydb {
-	map(Page.ref, Page) /pages
-	map(Link.ref, Link) /links
-}
-
-/**
-Récupérer la référence d'une page
-*/
-function get_page_ref(Page page) {
-	page.url;
-}
-
-/**
-Sauvegarder une page
-*/
-function save_page(Page page) {
-	jlog("save page {page}");
-	ref = get_page_ref(page);
-	/mydb/pages[ref] <- page;
-}
-
-/**
-Récupérer la référence d'un lien
-*/
-function get_link_ref(Link link) {
-	jlog("save link {link}");
-	"{link.source}_to_{link.target}";
-}
-
-/**
-Sauvegarder un lien
-*/
-function save_link(Link link) {
-	ref = get_link_ref(link);
-	/mydb/links[ref] <- link;
-}
 
 
 /**
@@ -117,7 +71,7 @@ function add_page() {
 					match (extract_page(record)) {
 						case {none}: Resource.raw_status({bad_request});	// mauvais formatage
 						case {some:page}:
-							save_page(page);
+							Page.save(page);
 							Resource.raw_status({success});
 					}
 				default: Resource.raw_status({bad_request});	// mauvais formatage du json
@@ -138,7 +92,7 @@ function add_link() {
 					match (extract_link(record)) {
 						case {none}: Resource.raw_status({bad_request});	// mauvais formatage
 						case {some:link}:
-							save_link(link);
+							Link.save(link);
 							Resource.raw_status({success});
 					}
 				default: Resource.raw_status({bad_request});	// mauvais formatage du json
