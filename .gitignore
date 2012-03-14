@@ -1,1 +1,5 @@
 __pycache__
+_build
+*.exe
+*.log
+*.err

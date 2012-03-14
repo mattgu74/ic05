@@ -1,0 +1,57 @@
+
+
+
+
+type Page.ref = string
+type Page = {
+    
+}
+
+type Link.ref = string
+type Link = {
+    Page source,
+    Page target
+}
+
+database mydb {
+    map(Page.ref, Page) /pages
+    map(Link.ref, Link) /links
+}
+
+function rest(path) {
+    match (HttpRequest.get_method()) {
+    case {some : {post}} :
+	match (path) {
+	case ["add_node" | _path]:
+	    jlog("path : {path}");
+	    jlog("{HttpRequest.get_body()}");
+	    Resource.raw_status({success});
+	default:
+	    Resource.raw_status({bad_request});
+	}
+    default:
+	Resource.raw_status({bad_request});
+    }
+}
+
+
+function start(url) {
+    match (url) {
+    case {path:[] ... }:
+	Resource.styled_page("Hello", ["/resources/css.css"], <>Hello</>);
+    case {path: ["_rest_" | path] ...}:
+	rest(path)
+    case  {~path ...} :
+	path = String.concat("/", path);
+	Resource.styled_page("404", ["/resources/css.css"], <><h1>404</h1><div>{path} doesn't exist</div></>);
+  }
+}
+
+
+Server.start(
+    Server.http,
+    [ {resources: @static_include_directory("resources")}
+      /** Launch the [start] dispatcher */
+      , {dispatch: start}
+    ]
+);
