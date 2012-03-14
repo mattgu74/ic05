@@ -91,19 +91,19 @@ class ConnectionHandler:
                 break
             if recv:
                 for in_ in recv:
-                    data = in_.recv(BUFLEN).decode()
+                    data = in_.recv(BUFLEN)
                     #print 'some data:', '%s'%data
                     if in_ is self.client:
                         out = self.target
                     else:
                         out = self.client
                     if data:
-                        out.send((data.econde()))
+                        out.send(data)
                         count = 0
             if count == time_out_max:
                 break
 
-def start_server(host='localhost', port=8080, IPv6=False, timeout=60,
+def start_server(host='files.mde.utc', port=8080, IPv6=False, timeout=60,
                   handler=ConnectionHandler):
     if IPv6==True:
         soc_type=socket.AF_INET6
@@ -120,7 +120,7 @@ def start_server(host='localhost', port=8080, IPv6=False, timeout=60,
            soc.close()
            exit()
 
-gephi = GephiAPI("localhost",8081)
+gephi = GephiAPI("192.168.144.38",8080)
 
 if __name__ == '__main__':
     start_server()
