@@ -11,7 +11,8 @@ import time
 
 #from db import *
 from gephiAPI import GephiAPI
-
+from mongodbapi import MongodbAPI
+from config import *
 
 
 class Controller(threading.Thread):
@@ -22,8 +23,8 @@ class Controller(threading.Thread):
 		self.queue_out = queue_out
 		self.max_depth = max_depth
 		
-		#self.db = DB(db_host, db_port, db_name, collection_name)
-		self.gephiAPI = GephiAPI()
+		self.gephiAPI = GephiAPI(GEPHI_HOST, GEPHI_PORT)
+		self.mongodbAPI = MongodbAPI(db_host, db_port)
 		self.visited = set(base_url)
 
 		self.e_stop = threading.Event()
@@ -45,20 +46,25 @@ class Controller(threading.Thread):
 				print("SAVE", param['url'], keywords)
 				#self.db.save_page(url, keywords, links)
 				self.gephiAPI.add_node(param['url'])
+				self.mongodbAPI.add_page(url=param['url'])
 				for link in links:
 					self.gephiAPI.add_node(link)
 					self.gephiAPI.add_edge(param['url'], link)
+					self.mongodbAPI.add_link(source=param['url'], target=link)
 				depth = param['depth'] + 1
 				if depth < self.max_depth:
 					start = time.time()
 					for link in links:
-						if link not in self.visited:
+						if self.url_need_a_visit(link):
 							result = {'url':link, 'depth':depth}
 							self.queue_out.put(result)
 							self.visited.add(link)
 					print("TIME ADD LINKS %s" % (time.time() - start))
 				#print "END CONTROL", param['url']
 
+	def url_need_a_visit(self, url):
+		return self.mongodbAPI.url_need_a_visit(url)
+	
 	def normalize_url(self, base_url, url):
 		split = urllib.parse.urlsplit(url)
 		if not split.hostname:

@@ -16,7 +16,6 @@ from robot import *
 
 class Crawler:
 	def __init__(self, base_url, n_threads_fetchers, max_depth, db_host, db_port, db_name, collection_name):
-	#def __init__(self, base_url, n_threads_openers, n_threads_extractors, max_depth, db_host, db_port, db_name, collection_name):
 		self.queue_fetchers = LifoQueue()
 		self.queue_controller = Queue()
 		self.robot = Robot()
@@ -54,7 +53,7 @@ class Crawler:
 
 
 if __name__ == "__main__":
-	c = Crawler("http://www.utc.fr", 1000, 10, MONGODB_HOST, MONGODB_PORT, MONGODB_DBNAME, MONGODB_COLLECTION)
+	c = Crawler("http://www.utc.fr", 1000, 5, MONGODB_HOST, MONGODB_PORT, MONGODB_DBNAME, MONGODB_COLLECTION)
 	try:
 		c.loop()
 	except KeyboardInterrupt:
