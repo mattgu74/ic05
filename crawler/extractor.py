@@ -8,6 +8,9 @@ import urllib.request, urllib.parse, urllib.error
 from bs4 import BeautifulSoup
 from unac import unac_string
 
+
+from tools import *
+
 class Extractor:
 	def __init__(self, url, html):
 		self.url = url
@@ -29,7 +32,7 @@ class Extractor:
 		
 
 	def get_links(self):
-		return [ link.get('href') for link in self.soup.find_all('a') if link.get('href') ]
+		return [ normalize_url(self.url, link.get('href')) for link in self.soup.find_all('a') if link.get('href') ]
 
 
 	def get_keywords(self):

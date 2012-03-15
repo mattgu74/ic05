@@ -6,14 +6,20 @@ import threading
 from urlhandler import *
 from extractor import *
 
+from gephiAPI import GephiAPI
+from mongodbapi import MongodbAPI
 
 class Fetcher(threading.Thread):
-	def __init__(self, robot, queue_in, queue_out, proxies):
+	def __init__(self, robot, queue_in, queue_out, max_depth, proxies):
 		threading.Thread.__init__(self, name="Fetcher-%s"%id(self))
 		self.robot = robot
 		self.queue_in = queue_in
 		self.queue_out = queue_out
+		self.max_depth = max_depth
 		self.proxies = proxies
+		
+		self.gephiAPI = GephiAPI(GEPHI_HOST, GEPHI_PORT)
+		self.mongodbAPI = MongodbAPI(MONGODB_HOST, MONGODB_PORT)
 
 		self.e_stop = threading.Event()
 
@@ -37,29 +43,78 @@ class Fetcher(threading.Thread):
 			else:
 				self._is_working.set()
 				url = params['url']
-				depth = params['depth']
-				urlhandler = UrlHandler(self.robot, url, 5, self.proxies)
-				try:
-					urlhandler.open()
-				except ExceptionUrlForbid: pass
-				except ExceptionMaxTries: pass
-				except Exception as ex:
-					print(url,ex)
-				else:
-					print("OPENED", url)
-					html = urlhandler.html
-					try:
-						extractor = Extractor(url, html)
-					except Exception as ex:
-						print("ERROR", self.__class__.__name__, ex, url)
-					links = extractor.links
-					keywords = extractor.keywords
-					result = {
-						'url': url,
-						'links': links,
-						'keywords': keywords,
-						'depth': depth
-					}
-					self.queue_out.put(result)
+				if self.url_need_a_visit(url):
+					depth = params['depth']
+					html = self.get_html(url)
+					if html:
+						extractor = self.extract(html, url)
+						if extractor:
+							links = extractor.links
+							keywords = extractor.keywords
+							self.process_result(depth+1, url, links, keywords)
 				self._is_working.clear()
-				
+
+	def process_result(self, depth, url, links, keywords):
+		#print("process gephi")
+		self.process_result_gephi(url, links, keywords)
+		#print("process db")
+		self.process_result_db(url, links, keywords)
+		#print("add links to queue")
+		if depth < self.max_depth:
+			for link in links:
+				result = {'url':link, 'depth':depth}
+				self.queue_out.put(result)
+
+	def process_result_gephi(self, url, links, keywords):
+		self.gephiAPI.add_node(url)
+		for link in links:
+			self.gephiAPI.add_node(link)
+			self.gephiAPI.add_edge(url, link)
+
+	def process_result_db(self, url, links, keywords):
+		self.mongodbAPI.add_page(url=url)
+		for link in links:
+			self.mongodbAPI.add_link(source=url, target=link)
+	
+	
+	def get_html(self, url):
+		"""
+		Récupérer le contenu d'une page
+		"""
+		urlhandler = UrlHandler(self.robot, self.proxies)
+		try:
+			stream = urlhandler.open(url, None, 5)
+		except ExceptionUrlForbid as ex:
+			print("ERROR", ex, "\n"+get_traceback())
+		except ExceptionMaxTries as ex:
+			print("ERROR", ex, "\n"+get_traceback())
+		except Exception as ex:
+			print(url, ex, "\n"+get_traceback())
+		else:
+			print("OPENED", url)
+			html = ""
+			try:
+				html = stream.read().decode()
+			except Exception as ex:
+				print(url, ex, "\n"+get_traceback())
+			finally:
+				stream.close()
+				return html
+
+	def extract(self, html, url):
+		"""
+		Extraires les choses importantes d'une page (liens, mots clefs, ...)
+		"""
+		try:
+			extractor = Extractor(url, html)
+		except Exception as ex:
+			print("ERROR", self.__class__.__name__, "extract :", ex, url, "\n"+get_traceback())
+		else:
+			return extractor
+		
+	def url_need_a_visit(self, url):
+		p = urllib.parse.urlparse(url)
+		if p.scheme in ('http','https'):
+			return self.mongodbAPI.url_need_a_visit(url)
+		else:
+			return False			

@@ -41,7 +41,7 @@ function add_page() {
 			jlog("add_page : le json ne correspond pas");
 			Resource.raw_status({bad_request});
 		case {some: (Rest.Add.page record)}:
-	    	jlog("{record}");
+	    	//jlog("{record}");
 			Page.save(rest_page_transform(record));
 			Resource.raw_status({success});
 		}
@@ -70,7 +70,7 @@ function add_link() {
 			jlog("add_link : le json ne correspond pas");
 			Resource.raw_status({bad_request});
 		case {some: (Rest.Add.link record)}:
-	    	jlog("{record}");
+	    	//jlog("{record}");
 			Link.save(rest_link_transform(record));
 			Resource.raw_status({success});
 		}
@@ -95,7 +95,7 @@ function url_need_a_visit() {
 			jlog("url_need_a_visit : le json ne correspond pas");
 			Resource.raw_status({bad_request});
 		case {some: (Rest.url record)}:
-	    	jlog("{record}");
+	    	//jlog("{record}");
 			rep = Page.url_need_a_visit(record.url);
 			Resource.raw_response(Json.serialize({Bool: rep}), "application/json", {success});
 		}
@@ -116,7 +116,7 @@ function get_urls_to_visit() {
 			jlog("get_urls_to_visit : le json ne correspond pas");
 			Resource.raw_status({bad_request});
 		case {some: (Rest.Get.urls_to_visit record)}:
-	    	jlog("{record}");
+	    	//jlog("{record}");
 			urls = Link.get_urls_to_visit(record.nb_max);
 			Resource.raw_response(Json.serialize(OpaSerialize.Json.serialize(urls)), "application/json", {success});
 		}

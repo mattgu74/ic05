@@ -4,8 +4,12 @@ import urllib.request
 import urllib.error
 import threading
 
+
+from tools import *
+
+
 def dict_to_json(d):
-	return str(d).replace("'", '"')
+	return str(d).replace("'", '"').replace('""', '"')
 	
 class MongodbAPI:
 	def __init__(self, host='localhost', port=8080):
@@ -46,7 +50,7 @@ class MongodbAPI:
 			try:
 				r = urllib.request.urlopen(url, encoded_req)
 			except urllib.error.URLError as ex:
-				print("ERROR", self.__class__.__name__, ex, "url=", url, "req=", req)
+				print("ERROR", self.__class__.__name__, "send :", ex, "url=", url, "req=", req, "\n"+get_traceback())
 			else:
 				return r
 		if block:

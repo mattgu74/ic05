@@ -1,5 +1,6 @@
 
 
+
 def test_alchemy(url):
 	import AlchemyAPI
 
@@ -24,8 +25,21 @@ def test_urllib(url):
 	s = stream.read()
 	print(s)
 
+def test_redirection(url):
+	import urllib.request
+	opener = urllib.request.FancyURLopener()
+	opener.addheader('User-agent', 'Galopa')
+	try:
+		stream = opener.open(url)
+	except Exception as ex:
+		print(ex)
+		return
+	s = stream.read()
+	print(s)
+	
 
 url = "http://www.google.fr"
 
 #test_alchemy(url)
-test_urllib(url)
+#test_urllib(url)
+test_redirection("http://www.cr-picardie.fr/spip.php?article709")

@@ -11,7 +11,7 @@ module Link {
 	Récupérer la référence d'un lien
 	*/
 	function get_ref(Link link) {
-		jlog("save link {link}");
+		//jlog("save link {link}");
 		"{link.source}_to_{link.target}";
 	}
 

@@ -2,10 +2,12 @@
 
 
 import urllib.request, urllib.error, urllib.parse
+from urllib.request import FancyURLopener
 import threading
 
 
 from config import *
+from tools import *
 
 class ExceptionUrlForbid(Exception):
 	pass
@@ -13,32 +15,32 @@ class ExceptionUrlForbid(Exception):
 class ExceptionMaxTries(Exception):
 	pass
 
-class UrlHandler:
-	def __init__(self, robot, url, max_tries, proxies):
+class UrlHandler(FancyURLopener):
+	def __init__(self, robot, proxies):
+		FancyURLopener.__init__(self)
+		self.addheader('User-agent', 'Galopa')
+		
 		self.robot = robot
-		self.url = url
-		self.max_tries = max_tries
 		self.proxies = proxies
-		
-		self.html = ""
 
-	def open(self):
-		if self.robot.can_fetch(self.url):
-			for _ in range(self.max_tries):
-				try:
-					stream = urllib.request.urlopen(self.__make_request())
-				except Exception as ex:
-					error = str(ex)
-				else:
-					self.html = stream.read()
-					break
-			else:
-				raise ExceptionMaxTries("fail open %s : %s" % (self.url, error))
-		else:
-			raise ExceptionUrlForbid("robots can't access to %s" % self.url)
+		self.max_tries = 1
 		
-	def __make_request(self):
-		req = urllib.request.Request(self.url)
-		req.add_header('User-agent', 'Galopa')
-		return req
+	def open(self, url, data=None, max_tries=None):
+		if not max_tries:
+			max_tries = self.max_tries
+		else:
+			self.max_tries = max_tries
+		if self.robot.can_fetch(url):
+			for _ in range(max_tries):
+				try:
+					stream = FancyURLopener.open(self, url, data)
+				except Exception as ex:
+					error = str(ex)+"\n"+get_traceback()
+				else:
+					return stream
+			else:
+				raise ExceptionMaxTries("max tries %s : %s" % (url, error))
+		else:
+			raise ExceptionUrlForbid("robots can't access to %s" % url)
+		
 
