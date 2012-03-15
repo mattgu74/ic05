@@ -4,18 +4,26 @@ import urllib.request
 
 
 
-node = {'url': 'http://www.google.fr'}
+node = {'url': 'http://www.google.fr/index.php'}
 req = str(node).replace("'", '"')
 
 r = urllib.request.urlopen("http://localhost:8080/_rest_/add_page", req.encode())
 print(r.read())
 
 
-node = {'source' : 'http://www.utc.fr/index.php', 'target': 'http://www.bidon.com'}
+node = {'source' : 'http://www.bonjour.fr/index.php', 'target': 'http://www.hello.com'}
 req = str(node).replace("'", '"')
 
 r = urllib.request.urlopen("http://localhost:8080/_rest_/add_link", req.encode())
 print(r.read())
 
+url = {'url': "http://www.google.fr/index.php"}
+req = str(url).replace("'",'"')
+r = urllib.request.urlopen("http://localhost:8080/_rest_/url_need_a_visit", req.encode())
+print(r.read())
 
+url = {'url': "http://www.ahahah.fr/index.php"}
+req = str(url).replace("'",'"')
+r = urllib.request.urlopen("http://localhost:8080/_rest_/url_need_a_visit", req.encode())
+print(r.read())
 

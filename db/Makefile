@@ -2,16 +2,11 @@
 # @author Matthieu Guffroy, Thomas Recouvreux
 
 OPA=opa
-OPA_PLUGIN_BUILDER=opa-plugin-builder
-OPADOC=opadoc
-BUILD_DIR=_build
-OPT=--opx-dir $(BUILD_DIR)
-OPT-RELEASE=$(OPT) --compile-release
-PLUGIN_OPT=
+EXE=main.exe
+OPT=--database mongo -o $(EXE)
 DEBUG=--debug-editable-css --verbose 100
 FILES=$(shell find src -name '*.opa')
-EXE=main.exe
-RUN-OPT=--db-force-upgrade #--db-local db/db --db-force-upgrade
+RUN-OPT=#--db-remote localhost:27017 #--db-force-upgrade #--db-local db/db --db-force-upgrade
 
 
 #-----------------------------------------------#
@@ -22,7 +17,7 @@ RUN-OPT=--db-force-upgrade #--db-local db/db --db-force-upgrade
 
 
 all: $(FILES)
-	$(OPA) $^ -o main.exe $(OPT)
+	$(OPA) $(OPT) $^
 
 
 

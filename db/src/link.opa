@@ -4,6 +4,9 @@
 
 
 module Link {
+	function to_string(Link link) {
+		OpaSerialize.serialize(link);
+	}
 	/**
 	Récupérer la référence d'un lien
 	*/
