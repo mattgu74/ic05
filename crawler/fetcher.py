@@ -17,8 +17,16 @@ class Fetcher(threading.Thread):
 
 		self.e_stop = threading.Event()
 
+		self._is_working = threading.Event()
+
 	def stop(self):
 		self.e_stop.set()
+
+	def is_working(self):
+		return self._is_working.is_set()
+
+	def wait_free(self, timeout=None):
+		self._is_working.wait(timeout)
 	
 	def run(self):
 		while not self.e_stop.is_set():
@@ -27,9 +35,9 @@ class Fetcher(threading.Thread):
 			except:
 				pass
 			else:
+				self._is_working.set()
 				url = params['url']
 				depth = params['depth']
-				print(("OPEN", url))
 				urlhandler = UrlHandler(self.robot, url, 5, self.proxies)
 				try:
 					urlhandler.open()
@@ -38,8 +46,12 @@ class Fetcher(threading.Thread):
 				except Exception as ex:
 					print(url,ex)
 				else:
+					print("OPENED", url)
 					html = urlhandler.html
-					extractor = Extractor(url, html)
+					try:
+						extractor = Extractor(url, html)
+					except Exception as ex:
+						print("ERROR", self.__class__.__name__, ex, url)
 					links = extractor.links
 					keywords = extractor.keywords
 					result = {
@@ -49,4 +61,5 @@ class Fetcher(threading.Thread):
 						'depth': depth
 					}
 					self.queue_out.put(result)
+				self._is_working.clear()
 				

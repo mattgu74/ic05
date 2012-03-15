@@ -16,7 +16,7 @@ from config import *
 
 
 class Controller(threading.Thread):
-	def __init__(self, base_url, queue_in, queue_out, max_depth, db_host, db_port, db_name, collection_name):
+	def __init__(self, queue_in, queue_out, max_depth, db_host, db_port, db_name, collection_name):
 		threading.Thread.__init__(self, name="Controller")
 		
 		self.queue_in = queue_in
@@ -25,14 +25,21 @@ class Controller(threading.Thread):
 		
 		self.gephiAPI = GephiAPI(GEPHI_HOST, GEPHI_PORT)
 		self.mongodbAPI = MongodbAPI(db_host, db_port)
-		self.visited = set(base_url)
 
 		self.e_stop = threading.Event()
+		self._is_working = threading.Event()
 
 	def stop(self):
 		self.e_stop.set()
+
+	def is_working(self):
+		return self._is_working.is_set()
+
+	def wait_free(self, timeout=None):
+		self._is_working.wait(timeout)
 	
 	def run(self):
+		tt = 0
 		while not self.e_stop.is_set():
 			try:
 				param = self.queue_in.get(True, 0.5)
@@ -40,6 +47,9 @@ class Controller(threading.Thread):
 				#print "NOTHING TO CONTROL"
 				continue
 			else:
+				print("TIME WITHOUT WORKING", time.time() - tt)
+				self._is_working.set()
+				start = time.time()
 				#print "CONTROL", param['url']
 				keywords = param['keywords']
 				links = [self.normalize_url(param['url'], x) for x in param['links']]
@@ -53,14 +63,16 @@ class Controller(threading.Thread):
 					self.mongodbAPI.add_link(source=param['url'], target=link)
 				depth = param['depth'] + 1
 				if depth < self.max_depth:
-					start = time.time()
+					start2 = time.time()
 					for link in links:
 						if self.url_need_a_visit(link):
 							result = {'url':link, 'depth':depth}
 							self.queue_out.put(result)
-							self.visited.add(link)
-					print("TIME ADD LINKS %s" % (time.time() - start))
+					print("TIME ADD LINKS %s" % (time.time() - start2))
 				#print "END CONTROL", param['url']
+				print("TIME CONTROLLER", time.time() - start)
+				self._is_working.clear()
+				tt = time.time()
 
 	def url_need_a_visit(self, url):
 		return self.mongodbAPI.url_need_a_visit(url)

@@ -33,12 +33,12 @@ Ajouter une page
 function add_page() {
 	match (extract_json_from_body()) {
 	case {~failure}: 
-		jlog("{failure}");
+		jlog("add_page : {failure}");
 		Resource.raw_status({bad_request});
 	case {success:opt}: 
 		match (opt) {
 		case {none}: 
-			jlog("le json ne correspond pas");
+			jlog("add_page : le json ne correspond pas");
 			Resource.raw_status({bad_request});
 		case {some: (Rest.Add.page record)}:
 	    	jlog("{record}");
@@ -62,12 +62,12 @@ Ajouter un lien
 function add_link() {
 	match (extract_json_from_body()) {
 	case {~failure}: 
-		jlog("{failure}");
+		jlog("add_link : {failure}");
 		Resource.raw_status({bad_request});
 	case {success:opt}: 
 		match (opt) {
 		case {none}: 
-			jlog("le json ne correspond pas");
+			jlog("add_link : le json ne correspond pas");
 			Resource.raw_status({bad_request});
 		case {some: (Rest.Add.link record)}:
 	    	jlog("{record}");
@@ -87,17 +87,38 @@ type Rest.url = {
 function url_need_a_visit() {
 	match (extract_json_from_body()) {
 	case {~failure}: 
-		jlog("{failure}");
+		jlog("url_need_a_visit : {failure}");
 		Resource.raw_status({bad_request});
 	case {success:opt}:
 		match (opt) {
 		case {none}: 
-			jlog("le json ne correspond pas");
+			jlog("url_need_a_visit : le json ne correspond pas");
 			Resource.raw_status({bad_request});
 		case {some: (Rest.url record)}:
 	    	jlog("{record}");
 			rep = Page.url_need_a_visit(record.url);
 			Resource.raw_response(Json.serialize({Bool: rep}), "application/json", {success});
+		}
+	}
+}
+
+type Rest.Get.urls_to_visit = {
+	int nb_max,
+}
+function get_urls_to_visit() {
+	match (extract_json_from_body()) {
+	case {~failure}: 
+		jlog("get_urls_to_visit : {failure}");
+		Resource.raw_status({bad_request});
+	case {success:opt}:
+		match (opt) {
+		case {none}: 
+			jlog("get_urls_to_visit : le json ne correspond pas");
+			Resource.raw_status({bad_request});
+		case {some: (Rest.Get.urls_to_visit record)}:
+	    	jlog("{record}");
+			urls = Link.get_urls_to_visit(record.nb_max);
+			Resource.raw_response(Json.serialize(OpaSerialize.Json.serialize(urls)), "application/json", {success});
 		}
 	}
 }
@@ -109,6 +130,7 @@ function rest(path) {
 				case ["add_page" | _path]: add_page();
 				case ["add_link" | _path]: add_link();
 				case ["url_need_a_visit" | _path]: url_need_a_visit();
+				case ["get_urls_to_visit" | _path]: get_urls_to_visit();
 				default: Resource.raw_status({bad_request});
 			}
 		default:

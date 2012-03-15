@@ -3,6 +3,7 @@
 import urllib.request
 import urllib.parse
 import urllib.error
+import threading
 
 class GephiAPI:
 	def __init__(self, host="localhost", port=8080):
@@ -33,16 +34,20 @@ class GephiAPI:
 		return {id_edge: params}
 	
 	def make_request(self, data, workspace_id):
-		url = "http://{host}:{port}/workspace{ws_id}?operation=updateGraph".format(
-			host=self.host,
-			port=self.port,
-			ws_id=workspace_id,
-		)
-		#print(url)
-		try:
-			urllib.request.urlopen(url, data=data.encode())
-		except urllib.error.URLError:
-			pass
+		def _f():
+			url = "http://{host}:{port}/workspace{ws_id}?operation=updateGraph".format(
+				host=self.host,
+				port=self.port,
+				ws_id=workspace_id,
+			)
+			#print(url)
+			try:
+				urllib.request.urlopen(url, data=data.encode())
+			except urllib.error.URLError:
+				pass
+		t = threading.Thread(target=_f)
+		t.setDaemon(True)
+		t.start()
 
 
 if __name__ == "__main__":

@@ -27,3 +27,7 @@ req = str(url).replace("'",'"')
 r = urllib.request.urlopen("http://localhost:8080/_rest_/url_need_a_visit", req.encode())
 print(r.read())
 
+req = str({'nb_max':45}).replace("'",'"')
+r = urllib.request.urlopen("http://localhost:8080/_rest_/get_urls_to_visit", req.encode())
+print(r.read())
+
