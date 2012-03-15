@@ -26,6 +26,7 @@ class Fetcher(threading.Thread):
 		self._is_working = threading.Event()
 
 	def stop(self):
+		self.mongodbAPI.stop()
 		self.e_stop.set()
 
 	def is_working(self):
@@ -113,6 +114,7 @@ class Fetcher(threading.Thread):
 			return extractor
 		
 	def url_need_a_visit(self, url):
+		return True
 		p = urllib.parse.urlparse(url)
 		if p.scheme in ('http','https'):
 			return self.mongodbAPI.url_need_a_visit(url)

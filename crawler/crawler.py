@@ -70,7 +70,7 @@ class Crawler:
 
 if __name__ == "__main__":
 	c = Crawler(10, 4, MONGODB_HOST, MONGODB_PORT, MONGODB_DBNAME, MONGODB_COLLECTION,
-		feeds=['http://www.pornhub.com'],
+		feeds=['http://www.youporn.com'],
 		nb_ask_feeds=0)
 	try:
 		c.loop()
