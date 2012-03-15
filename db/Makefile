@@ -3,10 +3,11 @@
 
 OPA=opa
 EXE=main.exe
-OPT=--database mongo -o $(EXE)
+DATABASE=db3
+OPT=-o $(EXE) --database $(DATABASE)
 DEBUG=--debug-editable-css --verbose 100
 FILES=$(shell find src -name '*.opa')
-RUN-OPT=#--db-remote localhost:27017 #--db-force-upgrade #--db-local db/db --db-force-upgrade
+RUN-OPT=--db-force-upgrade #--db-remote localhost:27017 #--db-force-upgrade #--db-local db/db --db-force-upgrade
 
 
 #-----------------------------------------------#
@@ -49,7 +50,7 @@ clean-db:
 	rm -rf db/*
 
 clean:
-	rm -rf $(BUILD_DIR)/*
+	rm -rf _build
 	rm -f *.exe
 	rm -rf doc
 	rm -rf _tracks

@@ -31,14 +31,14 @@ class MongodbAPI:
 		page = {
 			'url': url
 		}
-		self.queue.put("add_page", dict_to_json(page))
+		self.queue.put(("add_page", dict_to_json(page)))
 
 	def add_link(self, *, source, target):
 		link = {
 			'source': source,
 			'target': target,
 		}
-		self.queue.put("add_link", dict_to_json(link))
+		self.queue.put(("add_link", dict_to_json(link)))
 
 	def url_need_a_visit(self, url):
 		url = { 'url' : url }
@@ -72,7 +72,7 @@ class MongodbAPI:
 		while not self.e_stop.is_set():
 			try:
 				operation, req = self.queue.get(True, 0.5)
-			except:
+			except queue.Empty:
 				pass
 			else:
 				self.send(operation,req)

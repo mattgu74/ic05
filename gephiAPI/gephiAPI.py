@@ -34,6 +34,7 @@ class GephiAPI:
 		return {id_edge: params}
 	
 	def make_request(self, data, workspace_id):
+		#print(data.encode())
 		def _f():
 			url = "http://{host}:{port}/workspace{ws_id}?operation=updateGraph".format(
 				host=self.host,
@@ -54,15 +55,17 @@ if __name__ == "__main__":
 	import doctest
 	doctest.testmod()
 
+	import time
 	import sys
 	host = sys.argv[1] if len(sys.argv) > 1 else "localhost"
-	port = sys.argv[2] if len(sys.argv) > 2 else 8080
+	port = sys.argv[2] if len(sys.argv) > 2 else 8081
 
 	api = GephiAPI(host, port)
 	api.add_node("Node1")
 	api.add_node("Node2")
 	api.add_edge("Node1", "Node2")
 
+	time.sleep(1)
 
 
 

@@ -124,6 +124,7 @@ function get_urls_to_visit() {
 }
 
 function rest(path) {
+	//jlog("{path}");
 	match (HttpRequest.get_method()) {
 		case {some : {post}} :
 			match (path) {
@@ -152,6 +153,7 @@ function start(url) {
 	match (url) {
 		case {path:[] ... }: home();
 		case {path: ["_rest_" | path] ...}: rest(path)
+		case {path: ["export_gephi" | _path] ...}: page_export();
 		case  {~path ...} :
 		path = String.concat("/", path);
 		Resource.styled_page("404", ["/resources/css.css"], <><h1>404</h1><div>{path} doesn't exist</div></>);
