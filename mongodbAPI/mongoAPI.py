@@ -57,14 +57,14 @@ class MongodbAPI:
 
 	def url_need_a_visit(self, url):
 		r = self.find('pages', {'_url':url})
-		if 'ok' in r and r['ok'] == 1 and r['results']:
+		if r and 'ok' in r and r['ok'] == 1 and r['results']:
 			return len(r['results'][0]['links']) == 0
 		else:
 			return True
 
 	def get_urls_to_visit(self, max_urls):
 		r = self.find('pages', {'links':{'$size':0}}, limit=max_urls)
-		if 'ok' in r and r['ok'] == 1 and r['results']:
+		if r and 'ok' in r and r['ok'] == 1 and r['results']:
 			print(r)
 			return list(map(lambda x: x['_url'], r['results']))
 		else:

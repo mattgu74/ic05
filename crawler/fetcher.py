@@ -101,9 +101,9 @@ class Fetcher(threading.Thread):
 			print("OPENED", url)
 			html = ""
 			try:
-				html = stream.read().decode()
+				html = stream.read().decode(errors='replace')
 			except Exception as ex:
-				print(url, ex, "\n"+get_traceback())
+				print(get_traceback(), "\n", url, ex, )
 			else:
 				stream.close()
 			return html
