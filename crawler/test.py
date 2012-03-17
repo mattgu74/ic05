@@ -36,10 +36,19 @@ def test_redirection(url):
 		return
 	s = stream.read()
 	print(s)
-	
+
+def test_urlparse():
+	import urllib.parse as up
+	import re
+	url = "http: //www.hello.com"
+	url = re.sub('\s','',url)
+	p = up.urlsplit(url)
+	print(p)
+	print(p.geturl())
 
 url = "http://www.google.fr"
 
 #test_alchemy(url)
 #test_urllib(url)
-test_redirection("http://www.cr-picardie.fr/spip.php?article709")
+#test_redirection("http://www.cr-picardie.fr/spip.php?article709")
+test_urlparse()

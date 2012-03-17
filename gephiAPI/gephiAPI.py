@@ -43,9 +43,11 @@ class GephiAPI:
 			)
 			#print(url)
 			try:
-				urllib.request.urlopen(url, data=data.encode())
+				r = urllib.request.urlopen(url, data=data.encode())
 			except urllib.error.URLError:
 				pass
+			else:
+				r.close()
 		t = threading.Thread(target=_f)
 		t.setDaemon(True)
 		t.start()
