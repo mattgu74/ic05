@@ -52,23 +52,21 @@ class MongodbAPI:
 		self.e_stop.set()
 	
 	def add_page(self, *, url, links):
-		page = {
-			'url': url,
-			'childs': links
-		}
-		return self.insert(page)
+		#print("ADD", url, links)
+		return self.update('pages', {'_url':url}, {'$set': {'_url':url}, '$pushAll':{'links':links}})
 
 	def url_need_a_visit(self, url):
-		r = self.find({'url':url})
-		if 'ok' in r if r['ok'] == 1 and r['results']:
-			return len(r['result'][0]['l']) == 0
+		r = self.find('pages', {'_url':url})
+		if 'ok' in r and r['ok'] == 1 and r['results']:
+			return len(r['results'][0]['links']) == 0
 		else:
 			return True
 
 	def get_urls_to_visit(self, max_urls):
-		r = self.find('pages', criteria={'links':[]}, limit=max_urls)
-		if 'ok' in r if r['ok'] == 1 and r['results']:
-			return list(map(lambda x: x['url'], r['result']))
+		r = self.find('pages', {'links':{'$size':0}}, limit=max_urls)
+		if 'ok' in r and r['ok'] == 1 and r['results']:
+			print(r)
+			return list(map(lambda x: x['_url'], r['results']))
 		else:
 			return []
 	
@@ -77,15 +75,37 @@ class MongodbAPI:
 		""" low level api """
 		if not isinstance(obj,list):
 			obj = [obj,]
-		return self.send(collection, "_insert", {"docs":json.dumps(obj)})
+		return self.send(collection, "_insert", {"docs":obj})
 
+	def update(self, collection, criteria, newobj, upsert=True, multi=False, safe=True):
+		"""
+		low level
+		
+		Required arguments:
+		criteria=criteria_for_update (object)
+		newobj=modifications (object)
+		Optional arguments:
+
+		upsert=bool (insert si l'objet n'existe pas)
+		multi=bool
+		safe=bool
+		"""
+		params = {
+			'criteria': criteria,
+			'newobj': newobj,
+			'upsert': upsert,
+			'multi': multi,
+			'safe': safe,
+		}
+		return self.send(collection, "_update", params)
+	
 	def remove(self, collection, criteria=None):
 		""" low level api """
 		params = {}
 		if criteria: params['criteria'] = criteria
 		return self.send(collection, "_remove", params)
 
-	def find(self, collection, **kwargs):
+	def find(self, collection, criteria=None, **kwargs):
 		"""
 		low level api
 		
@@ -97,8 +117,10 @@ class MongodbAPI:
 		explain=true
 		batch_size=num_to_return (number)
 		"""
-		options = ('criteria','fields','sort','skip','limit','explain','batch_size')
+		options = ('fields','sort','skip','limit','explain','batch_size')
 		params = {}
+		if criteria:
+			params['criteria'] = criteria
 		for k,v in kwargs.items():
 			if k in options:
 				params[k] = v
@@ -113,9 +135,10 @@ class MongodbAPI:
 			collection=collection,
 			operation=operation
 		)
+		#print(req)
+		for k,v in req.items():
+			req[k] = json.dumps(v)
 		if get_request:
-			for k,v in req.items():
-				req[k] = json.dumps(v)
 			url += "?"+urllib.parse.urlencode(req)
 			encoded_req = None
 		else:
@@ -146,6 +169,7 @@ if __name__ == "__main__":
 	api = MongodbAPI()
 	print("\nremove all")
 	print(api.remove('test'))
+	print(api.remove('pages'))
 	print("\ninsert simple")
 	print(api.insert('test',{'x': 42}))
 	print("\ninsert double")
@@ -158,3 +182,14 @@ if __name__ == "__main__":
 	print(api.insert('test',{'x':'blabla', 'l':[]}))
 	print("\nfind list vide")
 	print(api.find('test',criteria={'l':[]}))
+	print("update")
+	print(api.update('test', {'x': 47}, {'$set':{'a':1}}))
+	print("update2")
+	print(api.update('test', {'x': 57}, {'$set':{'a':42}}))
+
+	print("add_page")
+	print(api.add_page(url="http://bidon.com", links=[]))
+	print("add_page")
+	print(api.add_page(url="http://hey.com", links=['http://bidon.com']))
+	print("find")
+	print(api.get_urls_to_visit(40))

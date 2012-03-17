@@ -7,10 +7,10 @@ from urlhandler import *
 from extractor import *
 
 from gephiAPI import GephiAPI
-from mongodbapi import MongodbAPI
+from mongoAPI import MongodbAPI
 
 class Fetcher(threading.Thread):
-	def __init__(self, robot, queue_in, queue_out, max_depth, proxies):
+	def __init__(self, robot, queue_in, queue_out, max_depth, proxies, *, db_host, db_port, db_name):
 		threading.Thread.__init__(self, name="Fetcher-%s"%id(self))
 		self.robot = robot
 		self.queue_in = queue_in
@@ -19,11 +19,14 @@ class Fetcher(threading.Thread):
 		self.proxies = proxies
 		
 		self.gephiAPI = GephiAPI(GEPHI_HOST, GEPHI_PORT)
-		self.mongodbAPI = MongodbAPI(MONGODB_HOST, MONGODB_PORT)
+		self.mongodbAPI = MongodbAPI(db_host, db_port, db_name)
 
 		self.e_stop = threading.Event()
 
 		self._is_working = threading.Event()
+
+		self.nb_opened = 0
+		self.nb_saved = 0
 
 	def stop(self):
 		self.mongodbAPI.stop()
@@ -48,6 +51,7 @@ class Fetcher(threading.Thread):
 					depth = params['depth']
 					html = self.get_html(url)
 					if html:
+						self.nb_opened += 1
 						extractor = self.extract(html, url)
 						if extractor:
 							links = extractor.links
@@ -73,10 +77,12 @@ class Fetcher(threading.Thread):
 			self.gephiAPI.add_edge(url, link)
 
 	def process_result_db(self, url, links, keywords):
-		self.mongodbAPI.add_page(url=url)
+		print("SAVE", url)
+		self.nb_saved += 1
+		r = self.mongodbAPI.add_page(url=url, links=links)
+		print(r)
 		for link in links:
-			self.mongodbAPI.add_link(source=url, target=link)
-	
+			r = self.mongodbAPI.add_page(url=link, links=[])
 	
 	def get_html(self, url):
 		"""
@@ -114,7 +120,7 @@ class Fetcher(threading.Thread):
 			return extractor
 		
 	def url_need_a_visit(self, url):
-		return True
+		#return True
 		p = urllib.parse.urlparse(url)
 		if p.scheme in ('http','https'):
 			return self.mongodbAPI.url_need_a_visit(url)
