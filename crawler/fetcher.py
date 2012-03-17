@@ -104,9 +104,9 @@ class Fetcher(threading.Thread):
 				html = stream.read().decode()
 			except Exception as ex:
 				print(url, ex, "\n"+get_traceback())
-			finally:
+			else:
 				stream.close()
-				return html
+			return html
 
 	def extract(self, html, url):
 		"""
