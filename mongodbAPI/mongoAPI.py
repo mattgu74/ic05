@@ -11,6 +11,7 @@ from tools import *
 
 class MongodbAPI:
 	def __init__(self, host='localhost', port=27080, dbname='mydb'):
+
 		self.host = host
 		self.port = port
 		self.dbname = dbname
@@ -30,7 +31,7 @@ class MongodbAPI:
 		self.t.start()
 
 	def server_url(self):
-		return "http://{host}/".format(
+		return "http://{host}".format(
 			host=self.host,
 			port=self.port
 		)
@@ -147,10 +148,14 @@ class MongodbAPI:
 		else:
 			encoded_req = urllib.parse.urlencode(req).encode()
 		obj = None
-		try:
-			r = urllib.request.urlopen(url, encoded_req)
-		except urllib.error.URLError as ex:
-			print(get_traceback(), "\n", "ERROR", ex, "url=", url, "req=", req)
+		success = False
+		while not success:
+			try:
+				success = True
+				r = urllib.request.urlopen(url, encoded_req)
+			except urllib.error.URLError as ex:
+				success = False
+				print(get_traceback(), "\n", "ERROR", ex, "url=", url, "req=", req)
 		else:
 			s = r.read().decode()
 			r.close()
