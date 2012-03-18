@@ -148,14 +148,16 @@ class MongodbAPI:
 		else:
 			encoded_req = urllib.parse.urlencode(req).encode()
 		obj = None
-		success = False
-		while not success:
+		success = 1
+		while success > 0:
 			try:
-				success = True
+				s = success
+				success = 0 
 				r = urllib.request.urlopen(url, encoded_req)
 			except urllib.error.URLError as ex:
-				success = False
-				print(get_traceback(), "\n", "ERROR", ex, "url=", url, "req=", req)
+				success = s + 1
+				#print(get_traceback(), "\n", "ERROR", ex, "url=", url, "req=", req)
+				print("error when calling rest interface...", s)
 		else:
 			s = r.read().decode()
 			r.close()
