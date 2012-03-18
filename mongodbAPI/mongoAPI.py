@@ -15,6 +15,9 @@ class MongodbAPI:
 		self.port = port
 		self.dbname = dbname
 
+		self.opener = urllib.request.FancyURLopener()
+		self.opener.addheader('User-agent', 'Galopa')
+
 		self.test()
 		self.connect()
 		
@@ -27,14 +30,14 @@ class MongodbAPI:
 		self.t.start()
 
 	def server_url(self):
-		return "http://{host}:{port}/".format(
+		return "http://{host}/".format(
 			host=self.host,
 			port=self.port
 		)
 
 	def test(self):
 		url = self.server_url()+"/_hello"
-		r = urllib.request.urlopen(url)
+		r = self.opener.open(url)
 		r = eval(r.read().decode())
 		if r['ok'] != 1:
 			raise Exception("L'api rest mongodb n'est probablement pas lancée, retour=%s" % r)
@@ -43,7 +46,7 @@ class MongodbAPI:
 		url = self.server_url()+"/_connect"
 		req = {"server": self.server_url()}
 		req = json.dumps(req).encode()
-		r = urllib.request.urlopen(url, req)
+		r = self.opener.open(url, req)
 		r = eval(r.read().decode())
 		if r['ok'] != 1:
 			raise Exception("Connection avec l'api rest mongodb impossible, retour=%s" % r)
