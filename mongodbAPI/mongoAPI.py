@@ -1,21 +1,24 @@
 # -*- coding: utf-8 -*-
 
-import urllib.request
-import urllib.error
+from urlhandler import UrlHandler
 import urllib.parse
 import threading
 import queue
 import json
 
 from tools import *
+from config import *
 
 class MongodbAPI:
+	"""
+	API interfacer avec sleepy mongoose
+	"""
 	def __init__(self, host='localhost', port=27080, dbname='mydb'):
 		self.host = host
 		self.port = port
 		self.dbname = dbname
 
-		self.opener = urllib.request.FancyURLopener()
+		self.opener = UrlHandler()
 		self.opener.addheader('User-agent', 'Galopa')
 
 		self.test()
@@ -37,6 +40,7 @@ class MongodbAPI:
 
 	def test(self):
 		url = self.server_url()+"/_hello"
+		print(url)
 		r = self.opener.open(url)
 		r = eval(r.read().decode())
 		if r['ok'] != 1:
@@ -149,7 +153,7 @@ class MongodbAPI:
 		obj = None
 		try:
 			r = urllib.request.urlopen(url, encoded_req)
-		except urllib.error.URLError as ex:
+		except Exception as ex:
 			print(get_traceback(), "\n", "ERROR", ex, "url=", url, "req=", req)
 		else:
 			s = r.read().decode()
@@ -169,7 +173,7 @@ class MongodbAPI:
 
 
 if __name__ == "__main__":
-	api = MongodbAPI()
+	api = MongodbAPI(MONGODB_HOST, MONGODB_PORT, 'test_db')
 	print("\nremove all")
 	print(api.remove('test'))
 	print(api.remove('pages'))

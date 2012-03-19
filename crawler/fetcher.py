@@ -10,13 +10,14 @@ from gephiAPI import GephiAPI
 from mongoAPI import MongodbAPI
 
 class Fetcher(threading.Thread):
-	def __init__(self, robot, queue_in, queue_out, max_depth, proxies, *, db_host, db_port, db_name):
+	def __init__(self, robot, queue_in, queue_out, max_depth, *, db_host, db_port, db_name):
 		threading.Thread.__init__(self, name="Fetcher-%s"%id(self))
 		self.robot = robot
 		self.queue_in = queue_in
 		self.queue_out = queue_out
 		self.max_depth = max_depth
-		self.proxies = proxies
+		
+		self.urlhandler = UrlHandler(robot=self.robot, max_tries=5)
 		
 		self.gephiAPI = GephiAPI(GEPHI_HOST, GEPHI_PORT)
 		self.mongodbAPI = MongodbAPI(db_host, db_port, db_name)
@@ -88,9 +89,8 @@ class Fetcher(threading.Thread):
 		"""
 		Récupérer le contenu d'une page
 		"""
-		urlhandler = UrlHandler(self.robot, self.proxies)
 		try:
-			stream = urlhandler.open(url, None, 5)
+			stream = self.urlhandler.open(url, None)
 		except ExceptionUrlForbid as ex:
 			print("ERROR", ex, "\n"+get_traceback())
 		except ExceptionMaxTries as ex:

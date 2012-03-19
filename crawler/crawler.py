@@ -22,7 +22,7 @@ class Crawler:
 		self.queue_fetchers = LifoQueue()
 		self.robot = Robot()
 		self.fetchers = [
-			Fetcher(self.robot, self.queue_fetchers, self.queue_fetchers, max_depth, PROXIES,
+			Fetcher(self.robot, self.queue_fetchers, self.queue_fetchers, max_depth,
 				db_host=db_host, db_port=db_port, db_name=db_name
 			)
 			for _ in range(n_threads_fetchers)
@@ -87,8 +87,8 @@ class Crawler:
 
 if __name__ == "__main__":
 	c = Crawler(2, 5, MONGODB_HOST, MONGODB_PORT, MONGODB_DBNAME,
-		feeds=["http://www.liensutiles.org/"],
-		#nb_ask_feeds=2
+		#feeds=["http://www.liensutiles.org/"],
+		nb_ask_feeds=2
 		)
 	try:
 		c.loop()
