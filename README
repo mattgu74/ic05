@@ -1,0 +1,2 @@
+git update-index --assume-unchanged config.py
+git update-index --no-assume-unchanged config.py

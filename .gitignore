@@ -4,3 +4,5 @@ _track
 *.exe
 *.log
 *.err
+
+*config.py
