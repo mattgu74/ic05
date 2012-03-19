@@ -14,6 +14,7 @@ class MongodbAPI:
 	API interfacer avec sleepy mongoose
 	"""
 	def __init__(self, host='localhost', port=27080, dbname='mydb'):
+
 		self.host = host
 		self.port = port
 		self.dbname = dbname
@@ -33,7 +34,7 @@ class MongodbAPI:
 		self.t.start()
 
 	def server_url(self):
-		return "http://{host}/".format(
+		return "http://{host}".format(
 			host=self.host,
 			port=self.port
 		)
@@ -152,7 +153,7 @@ class MongodbAPI:
 			encoded_req = urllib.parse.urlencode(req).encode()
 		obj = None
 		try:
-			r = urllib.request.urlopen(url, encoded_req)
+			r = self.opener.open(url, encoded_req)
 		except Exception as ex:
 			print(get_traceback(), "\n", "ERROR", ex, "url=", url, "req=", req)
 		else:
