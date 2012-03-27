@@ -47,7 +47,7 @@ class UrlHandler(FancyURLopener):
 				try:
 					stream = FancyURLopener.open(self, url, data)
 				except Exception as ex:
-					error = str(ex)+"\n"+get_traceback()
+					error = get_traceback()+"\n"+str(ex)
 				else:
 					return stream
 			else:

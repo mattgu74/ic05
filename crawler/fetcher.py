@@ -2,6 +2,7 @@
 
 
 import threading
+import time
 
 from urlhandler import *
 from extractor import *
@@ -10,7 +11,7 @@ from gephiAPI import GephiAPI
 from mongoAPI import MongodbAPI
 
 class Fetcher(threading.Thread):
-	def __init__(self, robot, queue_in, queue_out, max_depth, *, db_host, db_port, db_name):
+	def __init__(self, robot, queue_in, queue_out, max_depth, *, db_host, db_port, db_name, db_async=False):
 		threading.Thread.__init__(self, name="Fetcher-%s"%id(self))
 		self.robot = robot
 		self.queue_in = queue_in
@@ -18,20 +19,36 @@ class Fetcher(threading.Thread):
 		self.max_depth = max_depth
 		
 		self.urlhandler = UrlHandler(robot=self.robot, max_tries=5)
-		
-		self.gephiAPI = GephiAPI(GEPHI_HOST, GEPHI_PORT)
+
+		self.gephiAPI = []
+		for host,port in GEPHI_HOSTS:
+			self.gephiAPI.append(GephiAPI(host, port))
 		self.mongodbAPI = MongodbAPI(db_host, db_port, db_name)
 
 		self.e_stop = threading.Event()
 
 		self._is_working = threading.Event()
 
+		# statistics
 		self.nb_opened = 0
 		self.nb_saved = 0
+		self.stats = {
+			'process': [0,0],
+			'urlhandler': [0,0],
+			'extractor': [0,0],
+			'gephi': [0,0],
+			'db': [0,0]
+		}
+
+		# current url
+		self.url = ""
+
+		# shall the db send commands without waiting answer
+		self.db_async = db_async
 
 	def stop(self):
-		self.mongodbAPI.stop()
 		self.e_stop.set()
+		self.mongodbAPI.stop()
 
 	def is_working(self):
 		return self._is_working.is_set()
@@ -46,64 +63,89 @@ class Fetcher(threading.Thread):
 			except:
 				pass
 			else:
-				self._is_working.set()
 				url = params['url']
-				if self.url_need_a_visit(url):
-					depth = params['depth']
-					html = self.get_html(url)
-					if html:
-						self.nb_opened += 1
-						extractor = self.extract(html, url)
-						if extractor:
-							links = extractor.links
-							keywords = extractor.keywords
-							self.process_result(depth+1, url, links, keywords)
-				self._is_working.clear()
+				depth = params['depth']
+				self.exc_and_get_stats(
+					name="process",
+					target=self._process,
+					args=(url,depth)
+				)
+
+	def _process(self,url,depth):
+		self._is_working.set()
+		if self.url_need_a_visit(url):
+			html = self.exc_and_get_stats(
+					name="urlhandler",
+					target=self.get_html,
+					args=(url,)
+				)
+			if html:
+				self.nb_opened += 1
+				extractor = self.exc_and_get_stats(
+					name='extractor',
+					target=self.extract,
+					args=(html, url)
+				)
+				if extractor:
+					links = extractor.links
+					keywords = extractor.keywords
+					self.process_result(depth+1, url, links, keywords)
+		self._is_working.clear()
 
 	def process_result(self, depth, url, links, keywords):
-		#print("process gephi")
-		self.process_result_gephi(url, links, keywords)
-		#print("process db")
-		self.process_result_db(url, links, keywords)
-		#print("add links to queue")
+		#lprint("process gephi")
+		self.exc_and_get_stats(
+			name='gephi',
+			target=self.process_result_gephi,
+			args=(url, links, keywords)
+		)
+		#lprint("process db")
+		self.exc_and_get_stats(
+			name='db',
+			target=self.process_result_db,
+			args=(url, links, keywords)
+		)
+		#lprint("add links to queue")
 		if depth < self.max_depth:
 			for link in links:
 				result = {'url':link, 'depth':depth}
 				self.queue_out.put(result)
 
 	def process_result_gephi(self, url, links, keywords):
-		self.gephiAPI.add_node(url)
-		for link in links:
-			self.gephiAPI.add_node(link)
-			self.gephiAPI.add_edge(url, link)
+		for api in self.gephiAPI:
+			color = {'r':0.0, 'g':1.0, 'b':1.0}
+			api.add_node(url, **color)
+			api.add_nodes(map(lambda l: (l,color), links))
+			api.add_edges(map(lambda l: (url, l, {}), links))
 
 	def process_result_db(self, url, links, keywords):
-		print("SAVE", url)
+		lprint("SAVE", url)
 		self.nb_saved += 1
-		r = self.mongodbAPI.add_page(url=url, links=links)
-		print(r)
-		for link in links:
-			r = self.mongodbAPI.add_page(url=link, links=[])
+		r = self.mongodbAPI.add_page(url=url, links=links, safe=(not self.db_async))
+		#lprint(r)
+		r = self.mongodbAPI.add_empty_pages(links, safe=(not self.db_async))
+		#lprint(r)
 	
 	def get_html(self, url):
 		"""
 		Récupérer le contenu d'une page
 		"""
+		self.url = url		# pour savoir quelle url est entrain d'évaluer le fetcher
 		try:
 			stream = self.urlhandler.open(url, None)
 		except ExceptionUrlForbid as ex:
-			print("ERROR", ex, "\n"+get_traceback())
+			lprint("ERROR", ex)
 		except ExceptionMaxTries as ex:
-			print("ERROR", ex, "\n"+get_traceback())
+			lprint("ERROR", ex)
 		except Exception as ex:
-			print(url, ex, "\n"+get_traceback())
+			lprint(url, ex, "\n"+get_traceback())
 		else:
-			print("OPENED", url)
+			lprint("OPENED", url)
 			html = ""
 			try:
 				html = stream.read().decode(errors='replace')
 			except Exception as ex:
-				print(get_traceback(), "\n", url, ex, )
+				lprint(get_traceback(), "\n", url, ex, )
 			else:
 				stream.close()
 			return html
@@ -115,7 +157,7 @@ class Fetcher(threading.Thread):
 		try:
 			extractor = Extractor(url, html)
 		except Exception as ex:
-			print("ERROR", self.__class__.__name__, "extract :", ex, url, "\n"+get_traceback())
+			lprint("ERROR", self.__class__.__name__, "extract :", ex, url, "\n"+get_traceback())
 		else:
 			return extractor
 		
@@ -126,3 +168,41 @@ class Fetcher(threading.Thread):
 			return self.mongodbAPI.url_need_a_visit(url)
 		else:
 			return False			
+
+	def exc_and_get_stats(self, *, name, target, args=(), kwargs={}):
+		start = time.time()
+		r = target(*args,**kwargs)
+		ellapsed = time.time() - start
+		self.stats[name][0] += ellapsed
+		self.stats[name][1] += 1
+		return r
+		
+	def __line(self, name, val, tab):
+		s_tab = "\t"*tab
+		return "{:.<40}{}\n".format(s_tab+name,val)
+		
+	def __repr__(self):
+			
+		s = "{:*^60}\n".format(self.name)
+		s += self.__line("Working", self.is_working(), 0)
+		s += self.__line("CurrentUrl", self.url, 0)
+		s += self.__line("TotOpened", self.nb_opened, 0)
+		s += self.__line("TotSaved", self.nb_saved, 0)
+		s += "Stats:\n"
+		for k, (t,n) in self.stats.items():
+			if n:
+				val = "{:.3f}s ({}iters)".format(t/n, n)
+				s += self.__line(k, val, 1)
+		return s
+
+
+
+
+
+
+
+
+
+
+		
+	
