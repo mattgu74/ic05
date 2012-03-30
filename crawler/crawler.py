@@ -118,15 +118,14 @@ if __name__ == "__main__":
 						action="store", dest="ask_feeds", type='int', default=default["ask_feeds"],
 						help="nombre d'urls à demander à la db")
 	parser.add_option("-c", "--clean",
-						action="store", dest="reset_db", default=default["reset_db"],
+						action="store", dest="reset_db", type='int', default=default["reset_db"],
 						help="supprimer la db ?")
 	
 	(options, _args) = parser.parse_args()
-
 	c = Crawler(2, options.depth, MONGODB_HOST, MONGODB_PORT, MONGODB_DBNAME,
 		feeds			= options.url.split(','),
 		nb_ask_feeds	= options.ask_feeds,
-		reset_db		= options.reset_db
+		reset_db		= (options.reset_db == 1)
 		)
 	try:
 		c.loop()

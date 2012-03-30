@@ -3,12 +3,14 @@
 
 import threading
 import time
+import urllib.parse
 
 from urlhandler import *
 from extractor import *
 
 from gephiAPI import GephiAPI
 from mongoAPI import MongodbAPI
+from opaAPI import opaAPI
 
 class Fetcher(threading.Thread):
 	def __init__(self, robot, queue_in, queue_out, max_depth, *, db_host, db_port, db_name, db_async=False):
@@ -25,6 +27,7 @@ class Fetcher(threading.Thread):
 			self.gephiAPI.append(GephiAPI(host, port))
 		self.mongodbAPI = MongodbAPI(db_host, db_port, db_name)
 
+		self.opaAPI = opaAPI("http://assos.utc.fr/opa-test")
 		self.e_stop = threading.Event()
 
 		self._is_working = threading.Event()
@@ -105,6 +108,7 @@ class Fetcher(threading.Thread):
 			target=self.process_result_db,
 			args=(url, links, keywords)
 		)
+		self.process_result_opa(url, links, keywords)
 		#lprint("add links to queue")
 		if depth < self.max_depth:
 			for link in links:
@@ -125,6 +129,17 @@ class Fetcher(threading.Thread):
 		#lprint(r)
 		r = self.mongodbAPI.add_empty_pages(links, safe=(not self.db_async))
 		#lprint(r)
+
+	def process_result_opa(self, url, links, keywords):
+		def normalize(url):
+			p = urllib.parse.urlparse(url)
+			return p.netloc
+		url = normalize(url)
+		self.opaAPI.add_node(url)
+		for link in links:
+			link = normalize(link)
+			self.opaAPI.add_node(link)
+			self.opaAPI.add_edge(url, link)
 	
 	def get_html(self, url):
 		"""
