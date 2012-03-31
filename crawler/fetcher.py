@@ -27,7 +27,7 @@ class Fetcher(threading.Thread):
 			self.gephiAPI.append(GephiAPI(host, port))
 		self.mongodbAPI = MongodbAPI(db_host, db_port, db_name)
 
-		self.opaAPI = opaAPI("http://assos.utc.fr/opa-test")
+		self.opaAPI = opaAPI(OPA_HOST)
 		self.e_stop = threading.Event()
 
 		self._is_working = threading.Event()
