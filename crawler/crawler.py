@@ -15,16 +15,20 @@ from robot import *
 
 
 class Crawler:
-	def __init__(self, n_threads_fetchers, max_depth, db_host, db_port, db_name, *,
+	def __init__(self, n_threads_fetchers, max_depth, db_host, db_name, *,
 			feeds=[],
 			nb_ask_feeds=0,
-			reset_db=False):
+			reset_db=False,
+			db_location='local'):
+		"""
+		@param db_location{string} 'local' ou 'opa'
+		"""
 				
 		self.queue_fetchers = Queue()
 		self.robot = Robot()
 		self.fetchers = [
 			Fetcher(self.robot, self.queue_fetchers, self.queue_fetchers, max_depth,
-				db_host=db_host, db_port=db_port, db_name=db_name, db_async=False
+				db_host=db_host, db_name=db_name, db_async=False, db_location=db_location
 			)
 			for _ in range(n_threads_fetchers)
 		]
@@ -37,7 +41,7 @@ class Crawler:
 			nb_ask_feeds = 1
 
 		if nb_ask_feeds > 0:
-			feeds += self.fetchers[0].mongodbAPI.get_urls_to_visit(nb_ask_feeds)
+			feeds += self.fetchers[0].dbAPI.get_urls_to_visit(nb_ask_feeds)
 
 		lprint(feeds)
 
@@ -102,9 +106,10 @@ if __name__ == "__main__":
 	
 	default = {}
 	default['url'] = ''
-	default['ask_feeds'] = 0
+	default['ask_feeds'] = 1
 	default['reset_db'] = 0
 	default['depth'] = 2
+	default['db-location'] = 'local'
 	
 	usage = "usage: %prog [options]"
 	parser = optparse.OptionParser(usage,version="%prog 0.0")
@@ -119,13 +124,21 @@ if __name__ == "__main__":
 						help="nombre d'urls à demander à la db")
 	parser.add_option("-c", "--clean",
 						action="store", dest="reset_db", type='int', default=default["reset_db"],
-						help="supprimer la db ?")
+						help="supprimer la db ? (ne marche que pour local)")
+	parser.add_option("-l", "--db-location",
+						action="store", dest="db_location", default=default["db-location"],
+						help="db local ou distante ? local|dist")
 	
 	(options, _args) = parser.parse_args()
-	c = Crawler(2, options.depth, MONGODB_HOST, MONGODB_PORT, MONGODB_DBNAME,
+	db_host = MONGODB_HOST
+	db_name = MONGODB_DBNAME
+	if options.db_location != 'local':
+		db_host = OPA_HOST
+	c = Crawler(2, options.depth, db_host, db_name,
 		feeds			= options.url.split(','),
 		nb_ask_feeds	= options.ask_feeds,
-		reset_db		= (options.reset_db == 1)
+		reset_db		= (options.reset_db == 1),
+		db_location 	= options.db_location,
 		)
 	try:
 		c.loop()

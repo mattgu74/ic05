@@ -10,10 +10,10 @@ from extractor import *
 
 from gephiAPI import GephiAPI
 from mongoAPI import MongodbAPI
-from opaAPI import opaAPI
+from opaAPI import OpaAPI
 
 class Fetcher(threading.Thread):
-	def __init__(self, robot, queue_in, queue_out, max_depth, *, db_host, db_port, db_name, db_async=False):
+	def __init__(self, robot, queue_in, queue_out, max_depth, *, db_host, db_name, db_async=False, db_location='local'):
 		threading.Thread.__init__(self, name="Fetcher-%s"%id(self))
 		self.robot = robot
 		self.queue_in = queue_in
@@ -25,9 +25,12 @@ class Fetcher(threading.Thread):
 		self.gephiAPI = []
 		for host,port in GEPHI_HOSTS:
 			self.gephiAPI.append(GephiAPI(host, port))
-		self.mongodbAPI = MongodbAPI(db_host, db_port, db_name)
 
-		self.opaAPI = opaAPI(OPA_HOST)
+		if db_location=='local':
+			self.dbAPI = MongodbAPI(db_host, db_name)
+		else:
+			self.dbAPI = OpaAPI(db_host)
+
 		self.e_stop = threading.Event()
 
 		self._is_working = threading.Event()
@@ -51,7 +54,7 @@ class Fetcher(threading.Thread):
 
 	def stop(self):
 		self.e_stop.set()
-		self.mongodbAPI.stop()
+		self.dbAPI.stop()
 
 	def is_working(self):
 		return self._is_working.is_set()
@@ -66,6 +69,7 @@ class Fetcher(threading.Thread):
 			except:
 				pass
 			else:
+				time.sleep(2)
 				url = params['url']
 				depth = params['depth']
 				self.exc_and_get_stats(
@@ -93,24 +97,31 @@ class Fetcher(threading.Thread):
 					links = extractor.links
 					keywords = extractor.keywords
 					self.process_result(depth+1, url, links, keywords)
+		else:
+			print("pas besoin de visiter", url)
 		self._is_working.clear()
 
 	def process_result(self, depth, url, links, keywords):
-		#lprint("process gephi")
+		# gephi
 		self.exc_and_get_stats(
 			name='gephi',
 			target=self.process_result_gephi,
 			args=(url, links, keywords)
 		)
-		#lprint("process db")
+		# db
 		self.exc_and_get_stats(
 			name='db',
 			target=self.process_result_db,
 			args=(url, links, keywords)
 		)
-		self.process_result_opa(url, links, keywords)
-		#lprint("add links to queue")
-		if depth < self.max_depth:
+		# queue
+		if isinstance(self.dbAPI, OpaAPI):
+			if self.queue_out.qsize() < 5:
+				to_visit = self.dbAPI.get_urls_to_visit(10)
+				for link in to_visit:
+					result = {'url':link, 'depth':depth}
+					self.queue_out.put(result)
+		elif depth < self.max_depth:
 			for link in links:
 				result = {'url':link, 'depth':depth}
 				self.queue_out.put(result)
@@ -125,22 +136,9 @@ class Fetcher(threading.Thread):
 	def process_result_db(self, url, links, keywords):
 		lprint("SAVE", url)
 		self.nb_saved += 1
-		r = self.mongodbAPI.add_page(url=url, links=links, safe=(not self.db_async))
-		#lprint(r)
-		r = self.mongodbAPI.add_empty_pages(links, safe=(not self.db_async))
+		r = self.dbAPI.add_links(url=url, links=links, safe=(not self.db_async))
 		#lprint(r)
 
-	def process_result_opa(self, url, links, keywords):
-		def normalize(url):
-			p = urllib.parse.urlparse(url)
-			return p.netloc
-		url = normalize(url)
-		self.opaAPI.add_node(url)
-		for link in links:
-			link = normalize(link)
-			self.opaAPI.add_node(link)
-			self.opaAPI.add_edge(url, link)
-	
 	def get_html(self, url):
 		"""
 		Récupérer le contenu d'une page
@@ -180,7 +178,7 @@ class Fetcher(threading.Thread):
 		#return True
 		p = urllib.parse.urlparse(url)
 		if p.scheme in ('http','https'):
-			return self.mongodbAPI.url_need_a_visit(url)
+			return self.dbAPI.url_need_a_visit(url)
 		else:
 			return False			
 

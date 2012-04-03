@@ -12,12 +12,18 @@ class MongodbAPI:
 	"""
 	API interfacer avec sleepy mongoose
 	"""
-	def __init__(self, host='localhost', port=27080, dbname='mydb'):
+	def __init__(self, host='localhost:27080', dbname='mydb'):
 		
 		self.host = host
-		self.port = port
 		self.dbname = dbname
 
+		split = host.split(':',1)
+
+		if len(split) > 1:
+			host,port = split
+		else:
+			port = 80
+		
 		self.connection = pymongo.Connection(host, port)
 		self.db = self.connection[dbname]
 
@@ -34,16 +40,17 @@ class MongodbAPI:
 	def stop(self):
 		self.e_stop.set()
 	
-	def add_page(self, *, url, links, safe=True):
+	def add_links(self, *, url, links, safe=True):
 		#lprint("ADD", url, links)
 		try:
-			r = self.db['pages'].update({'_url':url}, {'$set': {'_url':url}, '$addToSet':{'links': {"$each": links}}}, safe=safe, upsert=True)
+			r1 = self.db['pages'].update({'_url':url}, {'$set': {'_url':url}, '$addToSet':{'links': {"$each": links}}}, safe=safe, upsert=True)
 		except pymongo.errors.DuplicateKeyError:
 			pass
 		except Exception as ex:
 			print(get_traceback(),"\n",ex)
 		else:
-			return r
+			r2 = self.add_empty_pages(links, safe=safe)
+			return r1,r2
 
 	def add_empty_pages(self, urls, *, safe=True):
 		if urls:
@@ -84,17 +91,17 @@ class MongodbAPI:
 
 if __name__ == "__main__":
 	import time
-	api = MongodbAPI(MONGODB_HOST, MONGODB_PORT, 'test')
+	api = MongodbAPI(MONGODB_HOST, 'test')
 	print("remove_all")
 	#print(api.remove_all())
 	print("need visit ?")
 	print(api.url_need_a_visit("http://bidon.com"))
-	print("add_page")
-	print(api.add_page(url="http://bidon.com", links=[]))
+	print("add_links")
+	print(api.add_links(url="http://bidon.com", links=[]))
 	print("need visit ?")
 	print(api.url_need_a_visit("http://bidon.com"))
-	print("add_page")
-	print(api.add_page(url="http://hey.com", links=['http://bidon.com']))
+	print("add_links")
+	print(api.add_links(url="http://hey.com", links=['http://bidon.com']))
 	print("find")
 	print(api.get_urls_to_visit(40))
 	print("add empty pages")
