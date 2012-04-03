@@ -1,4 +1,9 @@
 
+String.prototype.startsWith = function(str) 
+{return (this.match("^"+str)==str)}
+
+String.prototype.endsWith = function(str) 
+{return (this.match(str+"$")==str)}
 
 
 function Slave(host) {
@@ -9,6 +14,19 @@ function Slave(host) {
 	this.raw_links = [];		// liens trouvés sur cette page (non-normalizés)
 	this.links = []; 			// liens trouvés sur cette page (normalizé)
 	this.d_normalize = [];
+	this.error = "";
+}
+
+/**
+ * Reset pour être pret à relancer un cycle.
+ * Ne reset pas 'running'
+ */
+Slave.prototype.reset = function() {
+	this.url = "";				// url à analyser
+	this.raw_links = [];		// liens trouvés sur cette page (non-normalizés)
+	this.links = []; 			// liens trouvés sur cette page (normalizé)
+	this.d_normalize = [];
+	this.error = "";
 }
 
 Slave.prototype.start = function() {
@@ -28,6 +46,7 @@ Slave.prototype.stop = function() {
  * @return {string} url
  */
 Slave.prototype.get_urls = function() {
+	this.reset();
 	var s = this;
 	$.get(
 		this.host + "get_urls",
@@ -54,11 +73,18 @@ Slave.prototype.set_url = function(url) {
  */
 Slave.prototype.process = function() {
 	var slave = this;
-	$.get(this.url, function(data,textStatus,jqXHR) {
-		slave.links = slave.get_links(data);
-		slave.return_result(slave.url, slave.links);
-	},
-	"html");
+	$.ajax({
+		url: this.url,
+		success: function(data,textStatus,jqXHR) {
+			slave.links = slave.get_links(data);
+			slave.return_result(slave.url, slave.links);
+		},
+		error: function(jqXHR, textStatus, errorThrown) {
+			slave.error = jqXHR.status;
+			slave.return_error(slave.url, slave.error);
+		},
+		dataType: "html"
+	});
 }
 
 /**
@@ -116,11 +142,15 @@ Slave.prototype.get_links = function(html) {
  * @return {string} lien normalizée
  */
 Slave.prototype.normalize_link = function(link) {
-	var parse = parseUri(link.toLowerCase());
+	var parse = parseUri(link.trim().toLowerCase());
 	var url_normalized = "";
 	var base = this.parsed_url.protocol + "://" +
 		this.parsed_url.authority;
 
+	if (parse.path=="") {
+		parse.path = "/";
+	}
+	
 	// url normale
 	// http://www.bidon.com...
 	if (parse.protocol=="http" || parse.protocol=="https") {
@@ -138,7 +168,7 @@ Slave.prototype.normalize_link = function(link) {
 		}
 		else if (parse.host==this.parsed_url.host) {
 			// un.autre.host/hello.php
-			if (s.indexOf('.') != -1) {
+			if (parse.host.indexOf('.') != -1) {
 				url_normalized = "http://" + parse.authority + parse.path;
 			}
 			// un/lien/relatif
@@ -170,13 +200,23 @@ Slave.prototype.return_result = function(url, links) {
 		data: JSON.stringify(data),
 		success: function(data) {
 			//alert("received return result");
-			if (this.running) {
+			if (s.running) {
 				s.get_urls();
 			}
 		},
 		dataType: "json",
 		processData: false,
 	});
+}
+
+
+/**
+ * @todo
+ */
+Slave.prototype.return_error = function(url, error) {
+	if (this.running) {
+		s.get_urls();
+	}
 }
 
 
