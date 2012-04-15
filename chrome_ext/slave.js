@@ -9,6 +9,7 @@ String.prototype.endsWith = function(str)
 function Slave(host) {
 	this.host = host;	// hostname du serveur
 
+	this.to_visit = [];
 	this.running = false;
 	this.url = "";				// url à analyser
 	this.raw_links = [];		// liens trouvés sur cette page (non-normalizés)
@@ -48,16 +49,22 @@ Slave.prototype.stop = function() {
 Slave.prototype.get_urls = function() {
 	this.reset();
 	var s = this;
-	$.get(
-		this.host + "get_urls",
-		function (data) {
-			//alert("hello" + data);
-			t = data;
-			s.set_url(data[0]);
-			s.process();
-		},
-		"json"
-	);
+	if(s.to_visit.length == 0) {
+		$.get(
+			this.host + "get_urls",
+			function (data) {
+				//alert("hello" + data);
+				t = data;
+				s.to_visit = data;
+				s.set_url(s.to_visit.pop());
+				s.process();
+			},
+			"json"
+		);
+	} else {
+		s.set_url(s.to_visit.pop());
+		s.process();
+	}
 }
 
 /**
