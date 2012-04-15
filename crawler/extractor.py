@@ -32,7 +32,10 @@ class Extractor:
 		
 
 	def get_links(self):
-		return list(set([ normalize_url(self.url, link.get('href')) for link in self.soup.find_all('a') if link.get('href') ]))
+		def f(url):
+			split = urllib.parse.urlsplit(url)
+			return (split.scheme in ('http', 'https'))
+		return list(filter(f, set([ normalize_url(self.url, link.get('href')) for link in self.soup.find_all('a') if link.get('href') ])))
 
 
 	def get_keywords(self):
