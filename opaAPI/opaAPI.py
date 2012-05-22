@@ -8,7 +8,7 @@ from config import *
 import json
 
 class OpaAPI:
-	def __init__(self, host='localhost'):
+	def __init__(self, host='http://localhost'):
 		self.host = host
 		self.nodes = set()
 		self.edges = set()
