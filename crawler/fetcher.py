@@ -116,7 +116,7 @@ class Fetcher(threading.Thread):
 		)
 		# queue
 		if isinstance(self.dbAPI, OpaAPI):
-			if self.queue_out.qsize() < 5:
+			if self.queue_out.qsize() < 10:
 				to_visit = self.dbAPI.get_urls_to_visit(10)
 				for link in to_visit:
 					result = {'url':link, 'depth':depth}
