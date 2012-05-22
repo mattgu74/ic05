@@ -1,0 +1,15 @@
+# -*- coding: utf-8 -*-
+
+
+
+GEPHI_HOSTS			= [
+	('localhost',8080)
+]
+
+
+MONGODB_HOST		= '127.0.0.1:27017'
+MONGODB_DBNAME 		= 'test'
+
+
+OPA_HOST			= "http://89.88.36.152"
+#OPA_HOST			= 'http://localhost'
